@@ -147,16 +147,19 @@ int main(int argc, char* argv[]) {
 				PIMAGE_EXPORT_DIRECTORY pExportDirectory = (PIMAGE_EXPORT_DIRECTORY)(dump + sectionHeaderList[i]->PointerToRawData + \
 					pExportTableRVA - sectionHeaderList[i]->VirtualAddress);
 				DWORD numberOfName = pExportDirectory->NumberOfNames;
-				
+				printf(" Number of Export name: %d\n", numberOfName);
 				int j = 0;
 				while (!(sectionHeaderList[j]->VirtualAddress < pExportDirectory->AddressOfNames && \
 					sectionHeaderList[j]->VirtualAddress + sectionHeaderList[j]->Misc.VirtualSize > pExportDirectory->Name)) j++;
-				char ** nameTable = (char **)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->AddressOfNames - sectionHeaderList[j]->VirtualAddress);
+				DWORD* nameTable = (DWORD*)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->AddressOfNames - sectionHeaderList[j]->VirtualAddress);
 				while (numberOfName--) {
-					char* name = nameTable[numberOfName];
+					DWORD nameRVA = (nameTable[numberOfName]);
+					int k = 0;
+					while (!(sectionHeaderList[k]->VirtualAddress < nameRVA && \
+						sectionHeaderList[k]->VirtualAddress + sectionHeaderList[k]->Misc.VirtualSize > nameRVA)) k++;
+					char* name = dump + sectionHeaderList[k]->PointerToRawData + nameRVA - sectionHeaderList[k]->VirtualAddress;
 					printf("\t%s\n", name);
 				}
-				
 			}
 		}
 	}
@@ -271,14 +274,18 @@ int main(int argc, char* argv[]) {
 				PIMAGE_EXPORT_DIRECTORY pExportDirectory = (PIMAGE_EXPORT_DIRECTORY)(dump + sectionHeaderList[i]->PointerToRawData + \
 					pExportTableRVA - sectionHeaderList[i]->VirtualAddress);
 				DWORD numberOfName = pExportDirectory->NumberOfNames;
-
+				printf( " Number of Export name: %d\n", numberOfName);
 				int j = 0;
 				while (!(sectionHeaderList[j]->VirtualAddress < pExportDirectory->AddressOfNames && \
 					sectionHeaderList[j]->VirtualAddress + sectionHeaderList[j]->Misc.VirtualSize > pExportDirectory->Name)) j++;
-				char** nameTable = (char**)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->AddressOfNames - sectionHeaderList[j]->VirtualAddress);
+				DWORD * nameTable = (DWORD *)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->AddressOfNames - sectionHeaderList[j]->VirtualAddress);
 				while (numberOfName--) {
-					char* name = nameTable[numberOfName];
-					printf("%s", name);
+					DWORD nameRVA = (nameTable[numberOfName]);
+					int k = 0;
+					while (!(sectionHeaderList[k]->VirtualAddress < nameRVA && \
+						sectionHeaderList[k]->VirtualAddress + sectionHeaderList[k]->Misc.VirtualSize > nameRVA)) k++;
+					char* name = dump + sectionHeaderList[k]->PointerToRawData + nameRVA - sectionHeaderList[k]->VirtualAddress;
+					printf("\t%s\n", name);
 				}
 
 			}
