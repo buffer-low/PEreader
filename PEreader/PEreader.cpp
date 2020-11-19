@@ -34,6 +34,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	DWORD magic = tmp_pImageNTHeader->OptionalHeader.Magic;
+	
 	if (magic == 0x10b) {
 		PIMAGE_NT_HEADERS32 pImageNTHeaders = (PIMAGE_NT_HEADERS32)(dump + pImageDosHeader->e_lfanew);
 		PIMAGE_OPTIONAL_HEADER32 pImageOptionalHeader = (PIMAGE_OPTIONAL_HEADER32)(&pImageNTHeaders->OptionalHeader);
@@ -148,12 +149,12 @@ int main(int argc, char* argv[]) {
 				DWORD numberOfName = pExportDirectory->NumberOfNames;
 				
 				int j = 0;
-				while (!(sectionHeaderList[j]->VirtualAddress < pExportDirectory->Name && \
+				while (!(sectionHeaderList[j]->VirtualAddress < pExportDirectory->AddressOfNames && \
 					sectionHeaderList[j]->VirtualAddress + sectionHeaderList[j]->Misc.VirtualSize > pExportDirectory->Name)) j++;
-				char* name = (char*)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->Name - sectionHeaderList[j]->VirtualAddress);
+				char ** nameTable = (char **)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->AddressOfNames - sectionHeaderList[j]->VirtualAddress);
 				while (numberOfName--) {
-					printf("%s", name);
-					name += strlen(name);
+					char* name = nameTable[numberOfName];
+					printf("\t%s\n", name);
 				}
 				
 			}
@@ -168,7 +169,7 @@ int main(int argc, char* argv[]) {
 		printf(" NumberOfSection: %d\n", pImageFileHeader->NumberOfSections);
 		time_t t = pImageFileHeader->TimeDateStamp;
 		printf(" TimeDateStamp: %s\n", asctime(gmtime(&t)));
-		printf(" PointerToSymbol Table: 0x%p\n", pImageFileHeader->PointerToSymbolTable);
+		printf(" PointerToSymbol Table: 0x%lx\n", pImageFileHeader->PointerToSymbolTable);
 		printf(" NumberOfSymbol: %d\n", pImageFileHeader->NumberOfSymbols);
 		printf(" SizeOfOptionalHeader: 0x%x\n", pImageFileHeader->SizeOfOptionalHeader);
 		printf(" Characteristic: 0x%.2x\n", pImageFileHeader->Characteristics);
@@ -179,9 +180,9 @@ int main(int argc, char* argv[]) {
 		printf(" SizeOfCode: 0x%x\n", pImageOptionalHeader->SizeOfCode);
 		printf(" SizeOfIninitalizedData: 0x%x\n", pImageOptionalHeader->SizeOfInitializedData);
 		printf(" SizeOfUninitializedData: 0x%x\n", pImageOptionalHeader->SizeOfUninitializedData);
-		printf(" AddressOfEntryPoint: 0x%p\n", pImageOptionalHeader->AddressOfEntryPoint);
+		printf(" AddressOfEntryPoint: 0x%I32x\n", pImageOptionalHeader->AddressOfEntryPoint);
 		printf(" BaseOfCode: 0x%x\n", pImageOptionalHeader->BaseOfCode);
-		printf(" ImageBase: 0x%x\n", pImageOptionalHeader->ImageBase);
+		printf(" ImageBase: 0x%I64x\n", pImageOptionalHeader->ImageBase);
 		printf(" SectionAlignment: 0x%x\n", pImageOptionalHeader->SectionAlignment);
 		printf(" FileAlignment: 0x%x\n", pImageOptionalHeader->FileAlignment);
 		printf(" MajorOperatingSystemVersion: %d\n", pImageOptionalHeader->MajorOperatingSystemVersion);
@@ -194,27 +195,27 @@ int main(int argc, char* argv[]) {
 		printf(" Checksum: 0x%x\n", pImageOptionalHeader->CheckSum);
 		printf(" Subsystem: 0x%x\n", pImageOptionalHeader->Subsystem);
 		printf(" DLLCharacteristic: 0x%x\n", pImageOptionalHeader->DllCharacteristics);
-		printf(" SizeOfStackReserve: 0x%x\n", pImageOptionalHeader->SizeOfStackReserve);
-		printf(" SizeOfStackCommit: 0x%x\n", pImageOptionalHeader->SizeOfStackCommit);
-		printf(" SizeOfHeapReserve: 0x%x\n", pImageOptionalHeader->SizeOfHeapReserve);
-		printf(" SizeOfHeapCommit: 0x%x\n", pImageOptionalHeader->SizeOfHeapCommit);
+		printf(" SizeOfStackReserve: 0x%I64x\n", pImageOptionalHeader->SizeOfStackReserve);
+		printf(" SizeOfStackCommit: 0x%I64x\n", pImageOptionalHeader->SizeOfStackCommit);
+		printf(" SizeOfHeapReserve: 0x%I64x\n", pImageOptionalHeader->SizeOfHeapReserve);
+		printf(" SizeOfHeapCommit: 0x%I64x\n", pImageOptionalHeader->SizeOfHeapCommit);
 		printf(" LoaderFlags: 0x%x\n", pImageOptionalHeader->LoaderFlags);
 		printf(" NumberOfRvaAndSize: %d\n", pImageOptionalHeader->NumberOfRvaAndSizes);
 
 		printf(SPLITTER);
-		char* beginOfSectionTable = (char*)pImageOptionalHeader + sizeof(IMAGE_OPTIONAL_HEADER32);
+		char* beginOfSectionTable = (char*)pImageOptionalHeader + sizeof(IMAGE_OPTIONAL_HEADER64);
 		PIMAGE_SECTION_HEADER sectionHeaderList[100];
 		PIMAGE_DATA_DIRECTORY pExportTable, pImportTable;
 		for (int i = 0; i < pImageFileHeader->NumberOfSections; i++) {
 			PIMAGE_SECTION_HEADER section_header = (PIMAGE_SECTION_HEADER)(beginOfSectionTable + i * sizeof(IMAGE_SECTION_HEADER));
 			sectionHeaderList[i] = section_header;
 			printf(" Section Name: %s\n", &section_header->Name);
-			printf("\tVirtualSize: 0x%x\n", section_header->Misc);
+			printf("\tVirtualSize: 0x%x\n", section_header->Misc.VirtualSize);
 			printf("\tVirtualAddress: 0x%x\n", section_header->VirtualAddress);
 			printf("\tSizeOfRawData: 0x%x\n", section_header->SizeOfRawData);
-			printf("\tPointerToRawData: 0x%p\n", section_header->PointerToRawData);
-			printf("\tPointerToRelocation: 0x%p\n", section_header->PointerToRelocations);
-			printf("\tPointerToLinenumbers: 0x%p\n", section_header->PointerToLinenumbers);
+			printf("\tPointerToRawData: 0x%I32x\n", section_header->PointerToRawData);
+			printf("\tPointerToRelocation: 0x%I32x\n", section_header->PointerToRelocations);
+			printf("\tPointerToLinenumbers: 0x%I32x\n", section_header->PointerToLinenumbers);
 			printf("\tNumberOfRelocations: %d\n", section_header->NumberOfRelocations);
 			printf("\tNumberOfLinenumbers: %d\n", section_header->NumberOfLinenumbers);
 			printf("\tCharacteristic: 0x%x\n", section_header->Characteristics);
@@ -239,16 +240,16 @@ int main(int argc, char* argv[]) {
 						sectionHeaderList[j]->VirtualAddress + sectionHeaderList[j]->Misc.VirtualSize > pImportTableDirectory->Name)) j++;
 					char* name = dump + sectionHeaderList[j]->PointerToRawData + pImportTableDirectory->Name - sectionHeaderList[j]->VirtualAddress;
 					printf(" DLL Name: %s\n", name);
-					DWORD* pImportLookupTableEntry = (DWORD*)(dump + (pImportTableDirectory->OriginalFirstThunk) + \
+					UINT64* pImportLookupTableEntry = (UINT64*)(dump + (pImportTableDirectory->OriginalFirstThunk) + \
 						sectionHeaderList[j]->PointerToRawData - sectionHeaderList[j]->VirtualAddress);
 
 					while (*pImportLookupTableEntry != NULL) {
-						DWORD temp = *pImportLookupTableEntry;
-						if ((temp & 0x80000000) != 0) {
+						UINT64 temp = *pImportLookupTableEntry;
+						if ((temp & 0x8000000000000000) != 0) {
 							printf("\tImport by ordinal\n");
 						}
 						else {
-							DWORD nameRVA = pImportLookupTableEntry[1] & 0x3fffffff;
+							DWORD nameRVA = temp & 0x3fffffff;
 							for (int j = 0; i < pImageFileHeader->NumberOfSections; j++) {
 								if (sectionHeaderList[j]->VirtualAddress < nameRVA && nameRVA < \
 									sectionHeaderList[j]->VirtualAddress + sectionHeaderList[j]->Misc.VirtualSize) {
@@ -259,7 +260,7 @@ int main(int argc, char* argv[]) {
 								}
 							}
 						}
-						pImportLookupTableEntry+=2;
+						pImportLookupTableEntry++;
 					}
 					pImportTableDirectory++;
 				}
@@ -272,12 +273,12 @@ int main(int argc, char* argv[]) {
 				DWORD numberOfName = pExportDirectory->NumberOfNames;
 
 				int j = 0;
-				while (!(sectionHeaderList[j]->VirtualAddress < pExportDirectory->Name && \
+				while (!(sectionHeaderList[j]->VirtualAddress < pExportDirectory->AddressOfNames && \
 					sectionHeaderList[j]->VirtualAddress + sectionHeaderList[j]->Misc.VirtualSize > pExportDirectory->Name)) j++;
-				char* name = (char*)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->Name - sectionHeaderList[j]->VirtualAddress);
+				char** nameTable = (char**)(dump + sectionHeaderList[j]->PointerToRawData + pExportDirectory->AddressOfNames - sectionHeaderList[j]->VirtualAddress);
 				while (numberOfName--) {
+					char* name = nameTable[numberOfName];
 					printf("%s", name);
-					name += strlen(name);
 				}
 
 			}
